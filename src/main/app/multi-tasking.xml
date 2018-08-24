@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:request-config name="HTTP_Fake_API_Configuration" protocol="HTTPS" host="jsonplaceholder.typicode.com" port="443" basePath="/" doc:name="HTTP Request Configuration"/>
+
+    <flow name="get:/getReal:api-config">
+        <set-variable variableName="multiTaskStartTime" value="#[System.currentTimeMillis()]" doc:name="Variable multiTaskStartTime"/>
+        <expression-component doc:name="Expression"><![CDATA[java.util.ArrayList lst = new java.util.ArrayList();
+lst.add("1");
+lst.add("2");
+lst.add("3");
+lst.add("4");
+lst.add("5");
+lst.add("6");
+lst.add("7");
+lst.add("8");
+lst.add("9");
+lst.add("10");
+payload = lst;
+]]></expression-component>
+        <request-reply doc:name="Request-Reply" timeout="20000">
+            <vm:outbound-endpoint exchange-pattern="one-way" path="split" doc:name="VM">
+            	<message-properties-transformer>
+                <delete-message-property key="MULE_REPLYTO" />
+            </message-properties-transformer>
+            </vm:outbound-endpoint>
+            <vm:inbound-endpoint exchange-pattern="one-way" path="resp" doc:name="VM"/>
+        </request-reply>
+       <choice doc:name="Choice check for error">
+            <when expression="#[message.inboundProperties.error]">
+ 				<set-property propertyName="http.status" value="#[500]" doc:name="500" />
+            	<set-payload value="#['{\&quot;errorId\&quot;:\&quot;42\&quot;,\&quot;errorCode\&quot;:500,\&quot;errorDescription\&quot;:\&quot;']#[payload]#['\&quot;}']" doc:name="Set Payload"/>
+             </when>
+            <otherwise>
+                <logger message="multi tasking succeeded #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+ 				<set-property propertyName="http.status" value="#[200]" doc:name="200" />
+                <object-to-string-transformer doc:name="Object to String"/>
+            </otherwise>
+       </choice>
+      <set-property propertyName="Content-Type" value="application/json" doc:name="Property set json header"/>
+	  <logger message="timeTaken=#[System.currentTimeMillis() - flowVars.multiTaskStartTime]" level="INFO" doc:name="Logger timeTaken"/>
+      <exception-strategy ref="main_flow_excpetion_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    
+    <choice-exception-strategy name="main_flow_excpetion_Strategy">
+	        <catch-exception-strategy when="#[exception.causedBy(org.mule.api.routing.ResponseTimeoutException)]" doc:name="Catch ResponseTimeoutException" logException="false">
+	            <logger message="Exception: #[exception] " level="WARN" doc:name="Logger"/>
+           		<set-property propertyName="#[&quot;http.status&quot;]" value="#[500]" doc:name="Property Set http status"/>
+            	<set-property propertyName="Content-Type" value="application/json" doc:name="Property set json header"/>
+            	<set-payload value="#['{\&quot;errorId\&quot;:\&quot;\&quot;,\&quot;errorCode\&quot;:500,\&quot;errorDescription\&quot;:\&quot;Call timed out\&quot;,\&quot;details\&quot;:[{\&quot;errorDescription\&quot;:\&quot;Internal Timeout\&quot;}]}']" doc:name="Set Payload"/>
+	        </catch-exception-strategy>     
+	        <catch-exception-strategy doc:name="Catch General Exception" logException="false">
+	            <logger message="Exception: #[exception] " level="WARN" doc:name="Logger"/>
+           		<set-property propertyName="#[&quot;http.status&quot;]" value="#[500]" doc:name="Property Set http status"/>
+            	<set-property propertyName="Content-Type" value="application/json" doc:name="Property set json header"/>
+            	<set-payload value="#['{\&quot;errorId\&quot;:\&quot;\&quot;,\&quot;errorCode\&quot;:500,\&quot;errorDescription\&quot;:\&quot;Internal Error\&quot;,\&quot;details\&quot;:[{\&quot;errorDescription\&quot;:\&quot;' + exception.message.replaceAll(&quot;\&quot;&quot;,&quot;&quot;) + 'Internal Timeout\&quot;}]}'] " doc:name="Set Payload"/>
+	        </catch-exception-strategy>     
+    </choice-exception-strategy>
+    
+    <flow name="splitter-Flow">
+    	<!--  Note: It is critical to have MULE_REPLYTO in order to avoid the mule runtime bug from 3.9.x -->
+    	<!-- as per https://stackoverflow.com/questions/23668887/object-store-exception-in-mule -->
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="split"/>
+			<message-properties-transformer doc:name="Message Properties">
+                <delete-message-property key="MULE_REPLYTO" />
+            </message-properties-transformer>
+        <splitter expression="#[payload]" doc:name="Splitter"/>
+        <validation:is-null message="The bad thing has happend" exceptionClass="java.lang.NullPointerException" value="#[payload]" doc:name="Validation"/>
+        <expression-component doc:name="Expression store correlation info"><![CDATA[sessionVars.gsize = message.outboundProperties.MULE_CORRELATION_GROUP_SIZE;
+sessionVars.cid = message.outboundProperties.MULE_CORRELATION_ID;
+sessionVars.cseq = message.outboundProperties.MULE_CORRELATION_SEQUENCE;]]></expression-component>
+        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="work"/>
+        <exception-strategy ref="thread_exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+
+	<flow name="actual-work-Flow">
+        <vm:inbound-endpoint exchange-pattern="one-way" path="work" doc:name="VM"/>
+        <set-variable variableName="workStartTime" value="#[System.currentTimeMillis()]" doc:name="Record start time"/>
+<!--         <enricher doc:name="Message Enricher"> -->
+            <http:request config-ref="HTTP_Fake_API_Configuration" path="posts/#[payload]" method="GET" doc:name="HTTP">
+            <http:success-status-code-validator values="200..599"/>
+            </http:request>
+<!--             <enrich source="payload" target="flowVars.res"/> -->
+<!--         </enricher> -->
+	    <logger message="work timeTaken=#[System.currentTimeMillis() - flowVars.workStartTime]" level="INFO" doc:name="Logger timeTaken"/>
+        <vm:outbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="collect"/>
+        <exception-strategy ref="thread_exception_Strategy" doc:name="Reference Exception Strategy"/>
+	</flow>
+
+    <flow name="aggregator-Flow">
+        <vm:inbound-endpoint exchange-pattern="one-way"  doc:name="VM" path="collect"/>
+        <expression-component doc:name="Expression set correlation info"><![CDATA[message.outboundProperties.MULE_CORRELATION_GROUP_SIZE = sessionVars.gsize;
+message.outboundProperties.MULE_CORRELATION_ID = sessionVars.cid;
+message.outboundProperties.MULE_CORRELATION_SEQUENCE = sessionVars.cseq;]]></expression-component>
+        <logger message="#[sessionVars.cseq]" level="INFO" doc:name="Logger"/>
+        <collection-aggregator failOnTimeout="false" doc:name="Collection Aggregator" />
+        <logger message="#[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <vm:outbound-endpoint exchange-pattern="one-way" path="resp" doc:name="VM"/>
+        <logger message="#[&quot;Assembly complete&quot;]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="thread_exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+
+   <choice-exception-strategy name="thread_exception_Strategy">
+	  <catch-exception-strategy doc:name="Catch General Exception" logException="false">
+	    <logger message="Exception: #[exception] " level="WARN" doc:name="Logger"/>
+       	<set-payload value="#[exception.message] " doc:name="Set Payload"/>
+ 		<set-property propertyName="error" value="#[true]" doc:name="error property" />
+    	<vm:outbound-endpoint exchange-pattern="one-way" path="resp" doc:name="VM"/>
+	  </catch-exception-strategy>     
+    </choice-exception-strategy>
+</mule>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:mock="http://www.mulesoft.org/schema/mule/mock" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/mock/current/mule-mock.xsd">
+    <munit:config mock-connectors="false" mock-inbounds="false" name="munit-Config" doc:name="MUnit configuration"/>
+    <spring:beans>
+        <spring:import resource="classpath:multi-tasking.xml"/>
+    </spring:beans>
+    <munit:test name="multi-tasking-test-suit-actual-work-FlowTest" description="Test">
+        <flow-ref name="get:/getReal:api-config" doc:name="Flow-ref to get:/getReal:api-config"/>
+        <munit:assert-true message="Response code #[message.outboundProperties['http.status']] does not match expected 200" condition="#[message.outboundProperties['http.status'] == 200]" doc:name="Assert True"/>
+    </munit:test>
+    <munit:test name="multi-tasking-test-suitTest" description="MUnit Test">
+        <mock:throw-an exception-ref="#[new java.lang.NullPointerException()]" whenCalling=".*:.*" doc:name="Throw an Exception">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#[&quot;HTTP&quot;]"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+        <flow-ref name="get:/getReal:api-config" doc:name="Flow-ref to get:/getReal:api-config"/>
+        <munit:assert-true message="Response code #[message.outboundProperties['http.status']] does not match expected 500" condition="#[message.outboundProperties['http.status'] == 500]" doc:name="Assert True"/>
+    </munit:test>
+</mule>
