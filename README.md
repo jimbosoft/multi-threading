@@ -1,6 +1,6 @@
 Mule Multi-Threading
 ===
-It is astoundingly difficult to perform such a simple task in mule, as executing a list of tasks in parallel. As I found little help from google searches I eventually got this sample together, so others may benefit.
+With mule it is astoundingly difficult to perform such a simple pattern as executing a list of tasks in parallel. As I found little help from google searches I eventually got this sample together, so others may benefit.
 The code is largely self explanatory, but there is a few strange things worth noting.
 ## Exception Handling
 When any of the VM flows throw an exception the main flow will just wait for ever. That is why it is important to 
