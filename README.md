@@ -17,7 +17,7 @@ For a bit of extra weird mule you also need to add
 </vm:outbound-endpoint>
 ```
 to the Request-reply outbound endpoint, or for run-time version 3.9 and above it will not wait for the reply.  
-Beware of the versions of Anypoint Studio and mule and munit run-time versions. They are extremely buggy and if you are having trouble compare to the versions I use and ... good luck.
+Beware of the versions of Anypoint Studio, mule and munit run-time versions. They are extremely buggy and if you are having trouble compare to the versions I use and ... good luck.
 ## Versions used
  - Anypoint Studio 6.5.0
  - 	<mule.version>3.9.1</mule.version>
