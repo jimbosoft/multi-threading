@@ -22,6 +22,6 @@ Beware of the versions of Anypoint Studio, mule run-time and munit. They are ext
  - Anypoint Studio 6.5.0
  - 	<mule.version>3.9.1</mule.version>
  - <mule.munit.support.version>3.9.1</mule.munit.support.version> which must always match the run-time version
- - <munit.version>1.3.8</munit.version>
+ - <munit.version>1.3.7</munit.version>
 	
 
