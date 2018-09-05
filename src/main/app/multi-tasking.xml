@@ -77,7 +77,7 @@ payload = lst;
                 <delete-message-property key="MULE_REPLYTO" />
             </message-properties-transformer>
         <splitter expression="#[payload]" doc:name="Splitter"/>
-        <validation:is-null message="The bad thing has happend" exceptionClass="java.lang.NullPointerException" value="#[payload]" doc:name="Validation"/>
+        <validation:is-not-null message="The bad thing has happend" exceptionClass="java.lang.NullPointerException" value="#[payload]" doc:name="Validation"/>
         <expression-component doc:name="Expression store correlation info"><![CDATA[sessionVars.gsize = message.outboundProperties.MULE_CORRELATION_GROUP_SIZE;
 sessionVars.cid = message.outboundProperties.MULE_CORRELATION_ID;
 sessionVars.cseq = message.outboundProperties.MULE_CORRELATION_SEQUENCE;]]></expression-component>
